@@ -29,39 +29,6 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-# Run setup scripts
-echo "[INSTALL] Run setup scripts"
-
-"$INSTALL_DIR/pialert/dockerfiles/user-mapping.sh"
-"$INSTALL_DIR/pialert/install/install_dependencies.sh" # if modifying this file transfer the chanegs into the root Dockerfile as well!
-
-echo "[INSTALL] Setup NGINX"
-
-# Remove default NGINX site if it is symlinked, or backup it otherwise
-if [ -L /etc/nginx/sites-enabled/default ] ; then
-  echo "Disabling default NGINX site, removing sym-link in /etc/nginx/sites-enabled"
-  sudo rm /etc/nginx/sites-enabled/default
-elif [ -f /etc/nginx/sites-enabled/default ]; then
-  echo "Disabling default NGINX site, moving config to /etc/nginx/sites-available"
-  sudo mv /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default.bkp_pialert
-fi
-
-# Clear existing directories and files
-if [ -d $WEB_UI_DIR ]; then
-  echo "Removing existing PiAlert web-UI"
-  sudo rm -R $WEB_UI_DIR
-fi
-
-if [ -f $NGINX_CONFIG_FILE ]; then
-  echo "Removing existing PiAlert NGINX config"
-  sudo rm $NGINX_CONFIG_FILE
-fi
-
-# create symbolic link to the pialert install directory
-ln -s $INSTALL_DIR/pialert/front $WEB_UI_DIR
-# create symbolic link to NGINX configuaration coming with PiAlert
-sudo ln -s "$INSTALL_DIR/pialert/install/pialert.conf" /etc/nginx/conf.d/pialert.conf
-
 # Use user-supplied port if set
 if [ -n "${PORT}" ]; then
   echo "Setting webserver to user-supplied port ($PORT)"
@@ -91,14 +58,6 @@ else
   fi
 fi
 
-# Fixing file permissions
-echo "[INSTALL] Fixing file permissions"
-
-
-chmod -R a+rwx $WEB_UI_DIR
-chmod -R a+rw $INSTALL_DIR/pialert/front/log
-chmod -R a+rwx $INSTALL_DIR
-
 FILEDB=$INSTALL_DIR/pialert/db/pialert.db
 
 if [ -f "$FILEDB" ]; then
@@ -111,10 +70,6 @@ echo "[INSTALL] Copy starter pialert.db and pialert.conf if they don't exist"
 cp -n "$INSTALL_DIR/pialert/back/pialert.conf" "$INSTALL_DIR/pialert/config/pialert.conf" 
 cp -n "$INSTALL_DIR/pialert/back/pialert.db"  "$INSTALL_DIR/pialert/db/pialert.db" 
 
-
-chmod -R a+rwx $INSTALL_DIR # second time after we copied the files
-chmod -R a+rw $INSTALL_DIR/pialert/config
-sudo chgrp -R www-data  $INSTALL_DIR/pialert
 
 # Check if buildtimestamp.txt doesn't exist
 if [ ! -f "$INSTALL_DIR/pialert/front/buildtimestamp.txt" ]; then

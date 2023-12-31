@@ -8,8 +8,6 @@ ENV USER=pi USER_ID=1000 USER_GID=1000  PORT=20211
 # Todo, do we still need all these packages? I can already see sudo which isn't needed
 
 RUN apt-get update 
-RUN apt-get install sudo -y 
-
 
 # create pi user and group
 # add root and www-data to pi group so they can r/w files and db
@@ -28,8 +26,8 @@ COPY --chmod=775 --chown=${USER_ID}:${USER_GID} . /home/pi/pialert/
 
 # ❗ IMPORTANT - if you modify this file modify the /install/install_dependecies.sh file as well ❗ 
 
-RUN apt-get install -y \
-    tini snmp ca-certificates curl libwww-perl arp-scan perl apt-utils cron sudo \
+RUN apt-get install --no-install-recommends -y \
+    tini snmp ca-certificates curl libwww-perl arp-scan perl apt-utils cron \
     nginx-light php php-cgi php-fpm php-sqlite3 php-curl sqlite3 dnsutils net-tools \
     python3 iproute2 nmap python3-pip zip systemctl usbutils traceroute
 
@@ -42,8 +40,12 @@ RUN apt-get install -y python3-venv
 RUN python3 -m venv myenv
 RUN /bin/bash -c "source myenv/bin/activate && update-alternatives --install /usr/bin/python python /usr/bin/python3 10 && pip3 install requests paho-mqtt scapy cron-converter pytz json2table dhcp-leases pyunifi speedtest-cli chardet"
 
+# Sudo ... somehow still needed .
+RUN apt-get install --no-install-recommends -y sudo
+
 # Create a buildtimestamp.txt to later check if a new version was released
 RUN date +%s > /home/pi/pialert/front/buildtimestamp.txt
+RUN /home/pi/pialert/dockerfiles/install.sh
 
 CMD ["/home/pi/pialert/dockerfiles/start.sh"]
 
